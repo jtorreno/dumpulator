@@ -10,6 +10,8 @@ STATUS_NOT_IMPLEMENTED = 0xC0000002
 STATUS_ACCESS_DENIED = 0xC0000022
 STATUS_PRIVILEGE_NOT_HELD = 0xC0000061
 
+DBG_PRINTEXCEPTION_C = 0x40010006
+
 class MEMORY_INFORMATION_CLASS(Enum):
     MemoryBasicInformation = 0
     MemoryWorkingSetInformation = 1
@@ -203,6 +205,9 @@ class ULONG(Int):
     def __new__(cls, value):
         return Int.__new__(cls, value & 0xFFFFFFFF)
 
+class BOOLEAN(ULONG):
+    pass
+
 class IO_APC_ROUTINE:
     pass
 
@@ -213,6 +218,12 @@ class LARGE_INTEGER:
     pass
 
 class UNICODE_STRING:
+    pass
+
+class EXCEPTION_RECORD:
+    pass
+
+class CONTEXT:
     pass
 
 def round_to_pages(size):

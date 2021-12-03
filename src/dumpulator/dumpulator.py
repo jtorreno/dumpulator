@@ -9,6 +9,7 @@ import inspect
 from .native import *
 from capstone import *
 from collections import OrderedDict
+import dumpulator.wintypes as wintypes
 
 syscall_functions = {}
 
@@ -413,6 +414,7 @@ class Dumpulator(Architecture):
         self._allocate_ptr = None
         self._setup_emulator()
         self.exit_code = None
+        self.handling_exception = False
         self.syscalls = []
         self._setup_syscalls()
         self.exports = self._setup_exports()
@@ -650,6 +652,8 @@ class Dumpulator(Architecture):
                 # mov edx, esp; sysenter; ret
                 KiFastSystemCall = b"\x8B\xD4\x0F\x34\xC3"
                 self.write(patch_addr, KiFastSystemCall)
+            elif export.name == b"KiUserExceptionDispatcher":
+                self.KiUserExceptionDispatcher = ntdll.baseaddress + export.address
 
         syscalls.sort()
         for index, (rva, name) in enumerate(syscalls):
@@ -725,7 +729,23 @@ def _hook_mem(uc: Uc, access, address, size, value, dp: Dumpulator):
         print(f"unmapped read from {address:0x}[{size:0x}], cip = {dp.regs.cip:0x}")
     elif access == UC_MEM_WRITE_UNMAPPED:
         print(f"unmapped write to {address:0x}[{size:0x}] = {value:0x}, cip = {dp.regs.cip:0x}")
+        if not dp.handling_exception:
+            dp._uc.hook_add(UC_HOOK_CODE, _hook_code, user_data=dp)
+            # This appears to be what Windows allocates on top of the stack:
+            #rsp = dp.regs.rsp - 0x710
+            # Stack layout:
+            # CONTEXT (0x4f0 bytes)
+            # EXCEPTION_RECORD (0x98 bytes)
+            #dp.regs.rsp = rsp
+            #ctx = wintypes.CONTEXT()
+            #ctx.Rip =
+            #dp.regs.eflags |= 0x100
+            dp.handling_exception = True
+            dp.regs.rip = dp.regs.rip
+            dp.regs.eflags |= 0x100
+            return True
 
+            pass
     elif access == UC_MEM_FETCH_UNMAPPED:
         print(f"unmapped fetch of {address:0x}[{size:0x}] = {value:0x}, cip = {dp.regs.cip:0x}")
     return False

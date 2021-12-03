@@ -159,3 +159,14 @@ def ZwProtectVirtualMemory(dp: Dumpulator,
     dp.protect(base, size, NewProtect)
     # TODO: OldProtect is not implemented
     return STATUS_SUCCESS
+
+@syscall
+def ZwRaiseException(dp: Dumpulator,
+                     ExceptionRecord: P(EXCEPTION_RECORD),
+                     ContextRecord: P(CONTEXT),
+                     FirstChance: BOOLEAN
+                     ):
+    ExceptionCode = ExceptionRecord.arch.read_ulong(ExceptionRecord.ptr)
+    print(f"ZwRaiseException: {ExceptionCode:x}")
+    #assert ExceptionCode == DBG_PRINTEXCEPTION_C
+    return STATUS_SUCCESS
